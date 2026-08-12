@@ -13,7 +13,7 @@ from PIL import Image
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════
 COMPANY_NAME = "Axiovox"
-APP_VERSION = "2.6"
+APP_VERSION = "2.7"
 DB_FILE = "axiovox_users.json"
 HISTORY_FILE = "axiovox_history.json"
 ORDERS_FILE = "axiovox_orders.json"
@@ -309,14 +309,18 @@ def render_generate_page():
     
     st.markdown(f"<h1 class='main-title'>🎬 AI Creation Studio</h1>", unsafe_allow_html=True)
     
-    # Top Stats Bar
+    # Top Stats Bar (Fixed f-string variables)
+    img_left = 'Unlimited' if stats['is_pro'] else (FREE_IMAGE_LIMIT - stats['image_count'])
+    vid_left = 'Unlimited' if stats['is_pro'] else (FREE_VIDEO_LIMIT - stats['video_count'])
+    status_txt = 'PRO' if stats['is_pro'] else 'FREE'
+
     c1, c2, c3 = st.columns(3)
     with c1:
-        st.markdown(f"<div class='stat-card'><div class='stat-val'>{'Unlimited' if stats['is_pro'] else f'{FREE_IMAGE_LIMIT - stats[\"image_count\"]}'}</div><div class='stat-lbl'>Free Photos Left</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='stat-card'><div class='stat-val'>{img_left}</div><div class='stat-lbl'>Free Photos Left</div></div>", unsafe_allow_html=True)
     with c2:
-        st.markdown(f"<div class='stat-card'><div class='stat-val'>{'Unlimited' if stats['is_pro'] else f'{FREE_VIDEO_LIMIT - stats[\"video_count\"]}'}</div><div class='stat-lbl'>Free Videos Left</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='stat-card'><div class='stat-val'>{vid_left}</div><div class='stat-lbl'>Free Videos Left</div></div>", unsafe_allow_html=True)
     with c3:
-        st.markdown(f"<div class='stat-card'><div class='stat-val'>{'PRO' if stats['is_pro'] else 'FREE'}</div><div class='stat-lbl'>Account Status</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='stat-card'><div class='stat-val'>{status_txt}</div><div class='stat-lbl'>Account Status</div></div>", unsafe_allow_html=True)
     
     st.write(" ")
     
@@ -458,4 +462,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
