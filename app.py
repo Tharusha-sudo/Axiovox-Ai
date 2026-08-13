@@ -13,16 +13,16 @@ from PIL import Image
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════
 COMPANY_NAME = "Axiovox"
-APP_VERSION = "2.7"
+APP_VERSION = "3.0"
 DB_FILE = "axiovox_users.json"
 HISTORY_FILE = "axiovox_history.json"
 ORDERS_FILE = "axiovox_orders.json"
 OUTPUT_DIR = "outputs"
 
-# Payment Configs & Limits
+# Payment Configs & Limits (FREE LIMIT INCREASED TO 50)
 NOWPAYMENTS_API_KEY = "QQTA7DP-MWDMQVM-HS23YZ4-A9A83MB"
-FREE_IMAGE_LIMIT = 5
-FREE_VIDEO_LIMIT = 5
+FREE_IMAGE_LIMIT = 50
+FREE_VIDEO_LIMIT = 50
 PRO_PRICE = "$10/month"
 
 POLLINATIONS_IMAGE = "https://image.pollinations.ai/prompt/{prompt}?width={w}&height={h}&seed={seed}&nologo=true"
@@ -220,20 +220,33 @@ def generate_ai_image(prompt, width=512, height=512, seed=42):
         return (res.content, "jpg") if res.status_code == 200 else (None, "API Error")
     except Exception as e: return None, str(e)
 
-def generate_ai_video(prompt, frames=8):
+def generate_ai_video(prompt, frames=10):
     images = []
-    p_bar = st.progress(0, text="🎬 AI is rendering video frames...")
+    p_bar = st.progress(0, text="🎬 AI is rendering motion frames...")
+    
+    # Motion එකක් පෙනෙන සේ Dynamic Prompt සහ Seeds එකතු කර ඇත
     for i in range(frames):
         p_bar.progress((i + 1) / frames, text=f"Rendering frame {i+1} of {frames}...")
-        url = POLLINATIONS_IMAGE.format(prompt=requests.utils.quote(f"{prompt}, cinematic frame {i}"), w=512, h=512, seed=i+100)
+        frame_prompt = f"{prompt}, dynamic movement, frame {i+1}, action sequence, cinematic"
+        url = POLLINATIONS_IMAGE.format(prompt=requests.utils.quote(frame_prompt), w=512, h=512, seed=2000 + (i * 20))
         try:
             res = requests.get(url, timeout=90)
-            if res.status_code == 200: images.append(Image.open(io.BytesIO(res.content)))
+            if res.status_code == 200: 
+                images.append(Image.open(io.BytesIO(res.content)))
         except: pass
+        
     p_bar.empty()
     if not images: return None, "Failed"
+    
     buf = io.BytesIO()
-    images[0].save(buf, save_all=True, append_images=images[1:], duration=220, loop=0, format='GIF')
+    images[0].save(
+        buf, 
+        save_all=True, 
+        append_images=images[1:], 
+        duration=130, # Smooth Speed
+        loop=0, 
+        format='GIF'
+    )
     return buf.getvalue(), "gif"
 
 # ═══════════════════════════════════════════════════════════════════
@@ -270,7 +283,7 @@ def render_login_page():
             with st.form("signup_form"):
                 new_email = st.text_input("Email Address", placeholder="name@example.com")
                 new_pass = st.text_input("Password", type="password")
-                if st.form_submit_button("Create Account & Get 5 Free Videos", type="primary", use_container_width=True):
+                if st.form_submit_button("Create Account & Get 50 Free Creations", type="primary", use_container_width=True):
                     succ, msg = register_user(new_email, new_pass)
                     if succ: st.success(msg)
                     else: st.error(msg)
@@ -309,7 +322,7 @@ def render_generate_page():
     
     st.markdown(f"<h1 class='main-title'>🎬 AI Creation Studio</h1>", unsafe_allow_html=True)
     
-    # Top Stats Bar (Fixed f-string variables)
+    # Top Stats Bar
     img_left = 'Unlimited' if stats['is_pro'] else (FREE_IMAGE_LIMIT - stats['image_count'])
     vid_left = 'Unlimited' if stats['is_pro'] else (FREE_VIDEO_LIMIT - stats['video_count'])
     status_txt = 'PRO' if stats['is_pro'] else 'FREE'
@@ -361,7 +374,7 @@ def render_generate_page():
     with tab2:
         st.subheader("Generate Motion AI Videos")
         
-        v_prompt = st.text_area("Enter your Video Prompt:", placeholder="Describe the video movement (e.g. A camera zooming into a glowing fantasy forest)...")
+        v_prompt = st.text_area("Enter your Video Prompt:", placeholder="Describe action movement (e.g. A fast red sports car racing down a highway at sunset, camera panning)...")
         
         if st.button("🎬 Generate Video Now", type="primary", use_container_width=True):
             if not v_prompt.strip():
@@ -369,7 +382,7 @@ def render_generate_page():
             elif is_nsfw_prompt(v_prompt):
                 st.error("⚠️ Safety Filter: Explicit content prohibited.")
             elif not stats['is_pro'] and stats['video_count'] >= FREE_VIDEO_LIMIT:
-                st.error("⚠️ Free Video Limit Reached (5/5)! Upgrade to Pro for Unlimited Video Generation.")
+                st.error(f"⚠️ Free Video Limit Reached ({FREE_VIDEO_LIMIT}/{FREE_VIDEO_LIMIT})! Upgrade to Pro for Unlimited Video Generation.")
             else:
                 vid_data, ext = generate_ai_video(v_prompt)
                 if vid_data:
@@ -377,7 +390,7 @@ def render_generate_page():
                     with open(fn, 'wb') as f: f.write(vid_data)
                     save_generation(email, 'video', v_prompt, fn, raw_bytes=vid_data)
                     st.image(vid_data, use_container_width=True)
-                    st.download_button("📥 Download Video (GIF)", vid_data, file_name="ai_video.gif", mime="image/gif", type="primary")
+                    st.download_button("📥 Download Motion Video (GIF)", vid_data, file_name="ai_video.gif", mime="image/gif", type="primary")
                     st.balloons()
                 else: st.error("Failed to generate video.")
 
@@ -415,7 +428,7 @@ def render_billing_page():
             <h2>⭐ Upgrade to PRO Unlimited</h2>
             <p style='font-size: 2.2rem; font-weight: 800; color: #fcd34d;'>{PRO_PRICE}</p>
             <ul style='font-size: 1.05rem; line-height: 1.8;'>
-                <li>✅ <b>Unlimited AI Videos</b> (No 5-video limit)</li>
+                <li>✅ <b>Unlimited AI Videos</b></li>
                 <li>✅ <b>Unlimited AI Photos</b></li>
                 <li>✅ Ultra Fast Generation Speed</li>
                 <li>✅ Full Commercial License Rights</li>
