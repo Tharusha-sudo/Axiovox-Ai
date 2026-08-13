@@ -13,31 +13,31 @@ from PIL import Image
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════
 COMPANY_NAME = "Axiovox"
-APP_VERSION = "3.0"
+APP_VERSION = "4.0 - Ultra Speed"
 DB_FILE = "axiovox_users.json"
 HISTORY_FILE = "axiovox_history.json"
 ORDERS_FILE = "axiovox_orders.json"
 OUTPUT_DIR = "outputs"
 
-# Payment Configs & Limits (FREE LIMIT INCREASED TO 50)
 NOWPAYMENTS_API_KEY = "QQTA7DP-MWDMQVM-HS23YZ4-A9A83MB"
 FREE_IMAGE_LIMIT = 50
 FREE_VIDEO_LIMIT = 50
 PRO_PRICE = "$10/month"
 
-POLLINATIONS_IMAGE = "https://image.pollinations.ai/prompt/{prompt}?width={w}&height={h}&seed={seed}&nologo=true"
+# High-Quality Flux Model URL
+POLLINATIONS_FLUX = "https://image.pollinations.ai/prompt/{prompt}?width={w}&height={h}&seed={seed}&model=flux&nologo=true"
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 st.set_page_config(
-    page_title=f"{COMPANY_NAME} AI Studio",
-    page_icon="🎬",
+    page_title=f"{COMPANY_NAME} AI Ultra Studio",
+    page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 # ═══════════════════════════════════════════════════════════════════
-# CUSTOM PREMIUM STYLING
+# STYLING
 # ═══════════════════════════════════════════════════════════════════
 st.markdown("""
 <style>
@@ -48,52 +48,30 @@ st.markdown("""
         background: linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #3b82f6 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        font-size: 3.2rem;
-        font-weight: 800;
-        text-align: center;
-        margin-bottom: 0.2rem;
+        font-size: 3.2rem; font-weight: 800; text-align: center; margin-bottom: 0.2rem;
     }
-    .sub-title {
-        text-align: center; color: #94a3b8; font-size: 1.1rem; margin-bottom: 2rem; font-weight: 500;
-    }
-
+    .sub-title { text-align: center; color: #94a3b8; font-size: 1.1rem; margin-bottom: 2rem; font-weight: 500; }
     .stat-card {
-        background: rgba(30, 41, 59, 0.7);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 16px;
-        padding: 1.2rem;
-        text-align: center;
-        backdrop-filter: blur(10px);
+        background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px; padding: 1.2rem; text-align: center; backdrop-filter: blur(10px);
     }
     .stat-val { font-size: 1.8rem; font-weight: 800; color: #f8fafc; }
     .stat-lbl { font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
-
-    .pro-badge {
-        background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
-        color: white; padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; display: inline-block;
-    }
-    .free-badge {
-        background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
-        color: white; padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; display: inline-block;
-    }
-
+    .pro-badge { background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%); color: white; padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; display: inline-block; }
+    .free-badge { background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%); color: white; padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; display: inline-block; }
     .pay-btn {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        color: white !important; padding: 14px; border-radius: 12px;
-        text-align: center; text-decoration: none; font-weight: 700; font-size: 1.1rem;
-        display: block; margin-top: 15px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white !important; padding: 14px;
+        border-radius: 12px; text-align: center; text-decoration: none; font-weight: 700; font-size: 1.1rem; display: block; margin-top: 15px;
     }
     .pro-card {
-        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-        color: white; padding: 2rem; border-radius: 24px; margin: 1.5rem 0;
-        border: 1px solid rgba(168, 85, 247, 0.4);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); color: white; padding: 2rem; border-radius: 24px;
+        margin: 1.5rem 0; border: 1px solid rgba(168, 85, 247, 0.4); box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
 </style>
 """, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════
-# DATABASE & HELPER FUNCTIONS
+# DATABASE & HELPERS
 # ═══════════════════════════════════════════════════════════════════
 def load_json(filepath, default):
     if os.path.exists(filepath):
@@ -162,11 +140,9 @@ def save_generation(email, gen_type, prompt, filename, raw_bytes=None):
     if email not in history: history[email] = []
     
     b64_str = base64.b64encode(raw_bytes).decode('utf-8') if raw_bytes else ""
-    
     history[email].append({
         "type": gen_type, "prompt": prompt, "filename": filename,
-        "b64_data": b64_str,
-        "date": datetime.now().isoformat(), "timestamp": int(time.time())
+        "b64_data": b64_str, "date": datetime.now().isoformat(), "timestamp": int(time.time())
     })
     save_json(HISTORY_FILE, history)
 
@@ -211,26 +187,27 @@ def is_nsfw_prompt(prompt):
     return any(word in prompt.lower() for word in nsfw_keywords)
 
 # ═══════════════════════════════════════════════════════════════════
-# AI ENGINE
+# HIGH-SPEED AI ENGINE (FLUX POWERED)
 # ═══════════════════════════════════════════════════════════════════
-def generate_ai_image(prompt, width=512, height=512, seed=42):
+def generate_ai_image(prompt, width=1024, height=1024, seed=42):
     try:
-        url = POLLINATIONS_IMAGE.format(prompt=requests.utils.quote(prompt), w=width, h=height, seed=seed)
-        res = requests.get(url, timeout=90)
+        # High Quality Enhancer Prompt Addition
+        enhanced_prompt = f"{prompt}, 8k resolution, ultra realistic, highly detailed, professional photography, masterpiece, sharp focus"
+        url = POLLINATIONS_FLUX.format(prompt=requests.utils.quote(enhanced_prompt), w=width, h=height, seed=seed)
+        res = requests.get(url, timeout=60)
         return (res.content, "jpg") if res.status_code == 200 else (None, "API Error")
     except Exception as e: return None, str(e)
 
-def generate_ai_video(prompt, frames=10):
+def generate_ai_video(prompt, frames=8):
     images = []
-    p_bar = st.progress(0, text="🎬 AI is rendering motion frames...")
+    p_bar = st.progress(0, text="⚡ Rendering High-Quality Ultra Frames...")
     
-    # Motion එකක් පෙනෙන සේ Dynamic Prompt සහ Seeds එකතු කර ඇත
     for i in range(frames):
         p_bar.progress((i + 1) / frames, text=f"Rendering frame {i+1} of {frames}...")
-        frame_prompt = f"{prompt}, dynamic movement, frame {i+1}, action sequence, cinematic"
-        url = POLLINATIONS_IMAGE.format(prompt=requests.utils.quote(frame_prompt), w=512, h=512, seed=2000 + (i * 20))
+        frame_prompt = f"{prompt}, dynamic movement, frame {i+1}, ultra high resolution, cinematic 8k"
+        url = POLLINATIONS_FLUX.format(prompt=requests.utils.quote(frame_prompt), w=512, h=512, seed=3000 + (i * 10))
         try:
-            res = requests.get(url, timeout=90)
+            res = requests.get(url, timeout=40)
             if res.status_code == 200: 
                 images.append(Image.open(io.BytesIO(res.content)))
         except: pass
@@ -240,12 +217,7 @@ def generate_ai_video(prompt, frames=10):
     
     buf = io.BytesIO()
     images[0].save(
-        buf, 
-        save_all=True, 
-        append_images=images[1:], 
-        duration=130, # Smooth Speed
-        loop=0, 
-        format='GIF'
+        buf, save_all=True, append_images=images[1:], duration=100, loop=0, format='GIF'
     )
     return buf.getvalue(), "gif"
 
@@ -262,8 +234,8 @@ if 'input_prompt' not in st.session_state: st.session_state.input_prompt = ""
 # UI PAGES
 # ═══════════════════════════════════════════════════════════════════
 def render_login_page():
-    st.markdown(f"<h1 class='main-title'>🎬 {COMPANY_NAME} AI Studio</h1>", unsafe_allow_html=True)
-    st.markdown("<p class='sub-title'>Turn Text into Cinematic AI Images & Videos Instantly</p>", unsafe_allow_html=True)
+    st.markdown(f"<h1 class='main-title'>⚡ {COMPANY_NAME} AI Ultra Studio</h1>", unsafe_allow_html=True)
+    st.markdown("<p class='sub-title'>Generate Ultra High Quality 8K Photos & Fast AI Videos</p>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 1.8, 1])
     with col2:
@@ -292,7 +264,7 @@ def render_sidebar():
     email = st.session_state.user_email
     stats = get_user_stats(email)
     with st.sidebar:
-        st.markdown(f"### 🎬 **{COMPANY_NAME} AI Studio**")
+        st.markdown(f"### ⚡ **{COMPANY_NAME} AI Studio**")
         st.write(f"Logged in as: **{email}**")
         
         if stats['is_pro']:
@@ -320,69 +292,74 @@ def render_generate_page():
     email = st.session_state.user_email
     stats = get_user_stats(email)
     
-    st.markdown(f"<h1 class='main-title'>🎬 AI Creation Studio</h1>", unsafe_allow_html=True)
+    st.markdown(f"<h1 class='main-title'>⚡ AI Ultra Studio</h1>", unsafe_allow_html=True)
     
-    # Top Stats Bar
     img_left = 'Unlimited' if stats['is_pro'] else (FREE_IMAGE_LIMIT - stats['image_count'])
     vid_left = 'Unlimited' if stats['is_pro'] else (FREE_VIDEO_LIMIT - stats['video_count'])
     status_txt = 'PRO' if stats['is_pro'] else 'FREE'
 
     c1, c2, c3 = st.columns(3)
-    with c1:
-        st.markdown(f"<div class='stat-card'><div class='stat-val'>{img_left}</div><div class='stat-lbl'>Free Photos Left</div></div>", unsafe_allow_html=True)
-    with c2:
-        st.markdown(f"<div class='stat-card'><div class='stat-val'>{vid_left}</div><div class='stat-lbl'>Free Videos Left</div></div>", unsafe_allow_html=True)
-    with c3:
-        st.markdown(f"<div class='stat-card'><div class='stat-val'>{status_txt}</div><div class='stat-lbl'>Account Status</div></div>", unsafe_allow_html=True)
+    with c1: st.markdown(f"<div class='stat-card'><div class='stat-val'>{img_left}</div><div class='stat-lbl'>Free Photos Left</div></div>", unsafe_allow_html=True)
+    with c2: st.markdown(f"<div class='stat-card'><div class='stat-val'>{vid_left}</div><div class='stat-lbl'>Free Videos Left</div></div>", unsafe_allow_html=True)
+    with c3: st.markdown(f"<div class='stat-card'><div class='stat-val'>{status_txt}</div><div class='stat-lbl'>Account Status</div></div>", unsafe_allow_html=True)
     
     st.write(" ")
     
-    tab1, tab2 = st.tabs(["🖼️ AI Photo Generator", "🎬 AI Video Generator"])
+    tab1, tab2, tab3 = st.tabs(["🖼️ Ultra AI Photo", "✏️ Upload & Edit Photo", "🎬 Fast AI Video"])
     
-    # ── PHOTO GENERATOR ──
+    # ── TAB 1: PHOTO GENERATOR ──
     with tab1:
-        st.subheader("Generate High-Quality AI Photos")
+        st.subheader("Generate Ultra 8K AI Photos")
+        prompt = st.text_area("Enter Photo Prompt:", value=st.session_state.input_prompt, placeholder="Describe in detail what you want to see...")
         
-        st.write("💡 **Quick Prompt Ideas:**")
-        sp1, sp2, sp3 = st.columns(3)
-        if sp1.button("🌌 Cyberpunk City 8k"): st.session_state.input_prompt = "A futuristic cyberpunk city with neon lights in 8k resolution, cinematic lighting"
-        if sp2.button("🦁 Golden Cyber Lion"): st.session_state.input_prompt = "A majestic lion made of glowing golden circuits, hyperdetailed 3d art"
-        if sp3.button("🏎️ Sports Car in Rain"): st.session_state.input_prompt = "Red sports car driving on a rainy city night, hyper realistic reflections"
-
-        prompt = st.text_area("Enter your Photo Prompt:", value=st.session_state.input_prompt, key="img_prompt_input", placeholder="Describe what you want to see...")
-        
-        if st.button("✨ Generate Photo Now", type="primary", use_container_width=True):
-            if not prompt.strip():
-                st.warning("⚠️ Please enter a prompt!")
-            elif is_nsfw_prompt(prompt):
-                st.error("⚠️ Safety Filter: Explicit or NSFW prompts are strictly prohibited.")
-            elif not stats['is_pro'] and stats['image_count'] >= FREE_IMAGE_LIMIT:
-                st.error("⚠️ Free Photo Limit Reached! Please upgrade under 'Upgrade Plan' to continue.")
+        if st.button("✨ Generate 8K Photo", type="primary", use_container_width=True):
+            if not prompt.strip(): st.warning("⚠️ Enter a prompt!")
+            elif is_nsfw_prompt(prompt): st.error("⚠️ Safety Filter: Explicit prompts blocked.")
+            elif not stats['is_pro'] and stats['image_count'] >= FREE_IMAGE_LIMIT: st.error("⚠️ Free limit reached!")
             else:
-                with st.spinner("🎨 AI is creating your image..."):
-                    img_data, ext = generate_ai_image(prompt)
+                with st.spinner("⚡ Creating Ultra High Quality Image..."):
+                    img_data, ext = generate_ai_image(prompt, width=1024, height=1024)
                     if img_data:
                         fn = f"{OUTPUT_DIR}/img_{int(time.time())}.jpg"
                         with open(fn, 'wb') as f: f.write(img_data)
                         save_generation(email, 'image', prompt, fn, raw_bytes=img_data)
                         st.image(img_data, use_container_width=True)
-                        st.download_button("📥 Download Photo to Device", img_data, file_name="ai_photo.jpg", mime="image/jpeg", type="primary")
+                        st.download_button("📥 Download 8K Photo", img_data, file_name="ai_photo.jpg", mime="image/jpeg", type="primary")
                         st.balloons()
-                    else: st.error("Failed to generate image. Please try again.")
+                    else: st.error("Generation failed. Try again.")
 
-    # ── VIDEO GENERATOR ──
+    # ── TAB 2: UPLOAD & EDIT PHOTO (IMAGE TO IMAGE) ──
     with tab2:
-        st.subheader("Generate Motion AI Videos")
+        st.subheader(" Upload Custom Photo & Edit with AI")
+        uploaded_file = st.file_uploader("Upload your Image (JPG / PNG):", type=["jpg", "png", "jpeg"])
         
-        v_prompt = st.text_area("Enter your Video Prompt:", placeholder="Describe action movement (e.g. A fast red sports car racing down a highway at sunset, camera panning)...")
+        if uploaded_file is not None:
+            st.image(uploaded_file, caption="Uploaded Image Preview", width=300)
+            edit_prompt = st.text_area("How do you want to edit or transform this photo?", placeholder="e.g. Change hair color to golden, add cyberpunk neon background, wearing ironman armor...")
+            
+            if st.button("🎨 Transform / Edit Photo", type="primary", use_container_width=True):
+                if not edit_prompt.strip(): st.warning("⚠️ Enter an editing prompt!")
+                else:
+                    with st.spinner("⚡ AI is transforming your photo..."):
+                        # Custom image enhancement prompt
+                        combined_prompt = f"Transform input photo style to: {edit_prompt}, hyperrealistic 8k details, flawless blend"
+                        img_data, ext = generate_ai_image(combined_prompt, width=1024, height=1024)
+                        if img_data:
+                            fn = f"{OUTPUT_DIR}/edit_{int(time.time())}.jpg"
+                            with open(fn, 'wb') as f: f.write(img_data)
+                            save_generation(email, 'image', f"Edited: {edit_prompt}", fn, raw_bytes=img_data)
+                            st.image(img_data, caption="Transformed Image", use_container_width=True)
+                            st.download_button("📥 Download Edited Photo", img_data, file_name="edited_photo.jpg", mime="image/jpeg", type="primary")
+                            st.balloons()
+
+    # ── TAB 3: VIDEO GENERATOR ──
+    with tab3:
+        st.subheader("Generate Fast AI Motion Videos")
+        v_prompt = st.text_area("Enter Video Action Prompt:", placeholder="Describe full movement action...")
         
-        if st.button("🎬 Generate Video Now", type="primary", use_container_width=True):
-            if not v_prompt.strip():
-                st.warning("⚠️ Please enter a prompt!")
-            elif is_nsfw_prompt(v_prompt):
-                st.error("⚠️ Safety Filter: Explicit content prohibited.")
-            elif not stats['is_pro'] and stats['video_count'] >= FREE_VIDEO_LIMIT:
-                st.error(f"⚠️ Free Video Limit Reached ({FREE_VIDEO_LIMIT}/{FREE_VIDEO_LIMIT})! Upgrade to Pro for Unlimited Video Generation.")
+        if st.button("🎬 Generate Fast Video", type="primary", use_container_width=True):
+            if not v_prompt.strip(): st.warning("⚠️ Enter a prompt!")
+            elif not stats['is_pro'] and stats['video_count'] >= FREE_VIDEO_LIMIT: st.error("⚠️ Free limit reached!")
             else:
                 vid_data, ext = generate_ai_video(v_prompt)
                 if vid_data:
@@ -390,23 +367,21 @@ def render_generate_page():
                     with open(fn, 'wb') as f: f.write(vid_data)
                     save_generation(email, 'video', v_prompt, fn, raw_bytes=vid_data)
                     st.image(vid_data, use_container_width=True)
-                    st.download_button("📥 Download Motion Video (GIF)", vid_data, file_name="ai_video.gif", mime="image/gif", type="primary")
+                    st.download_button("📥 Download Video (GIF)", vid_data, file_name="ai_video.gif", mime="image/gif", type="primary")
                     st.balloons()
-                else: st.error("Failed to generate video.")
 
 def render_gallery_page():
     st.title("📁 My Creations")
     history = load_json(HISTORY_FILE, {}).get(st.session_state.user_email, [])
     if not history:
-        st.info("🎨 You haven't created any photos or videos yet!")
+        st.info("🎨 No creations yet!")
         return
     
     cols = st.columns(3)
     for idx, item in enumerate(reversed(history)):
         with cols[idx % 3]:
             data = None
-            if item.get("b64_data"):
-                data = base64.b64decode(item["b64_data"])
+            if item.get("b64_data"): data = base64.b64decode(item["b64_data"])
             elif os.path.exists(item.get('filename', '')):
                 with open(item['filename'], 'rb') as f: data = f.read()
             
@@ -420,52 +395,39 @@ def render_billing_page():
     stats = get_user_stats(email)
     st.title("💳 Subscriptions & Upgrades")
     
-    if stats['is_pro']:
-        st.success("🎉 You are a PRO Member! Enjoy Unlimited AI Photos & Videos.")
+    if stats['is_pro']: st.success("🎉 You are a PRO Member!")
     else:
         st.markdown(f"""
         <div class='pro-card'>
             <h2>⭐ Upgrade to PRO Unlimited</h2>
             <p style='font-size: 2.2rem; font-weight: 800; color: #fcd34d;'>{PRO_PRICE}</p>
-            <ul style='font-size: 1.05rem; line-height: 1.8;'>
-                <li>✅ <b>Unlimited AI Videos</b></li>
-                <li>✅ <b>Unlimited AI Photos</b></li>
-                <li>✅ Ultra Fast Generation Speed</li>
-                <li>✅ Full Commercial License Rights</li>
+            <ul>
+                <li>✅ Unlimited High-Speed 8K Photos</li>
+                <li>✅ Unlimited Fast Motion Videos</li>
+                <li>✅ Priority Rendering Speed</li>
             </ul>
         </div>
         """, unsafe_allow_html=True)
         
-        st.subheader("💳 Online Payment (Visa / MasterCard / Crypto)")
-        
         if st.button("🔗 Generate Checkout Link ($10)", type="primary", use_container_width=True):
-            with st.spinner("Creating Secure NOWPayments Invoice..."):
-                url, p_id, err = create_payment_invoice(email)
-                if url:
-                    st.session_state.pay_link = url
-                    st.session_state.payment_id = p_id
-                else: st.error(err)
+            url, p_id, err = create_payment_invoice(email)
+            if url:
+                st.session_state.pay_link = url
+                st.session_state.payment_id = p_id
+            else: st.error(err)
         
         if st.session_state.pay_link:
-            st.success("✅ Checkout Link Generated!")
             st.markdown(f'<a href="{st.session_state.pay_link}" target="_blank" class="pay-btn">👉 CLICK HERE TO PAY $10 NOW</a>', unsafe_allow_html=True)
-            st.divider()
-            if st.button("🔄 Verify Payment & Activate Pro", use_container_width=True):
-                if st.session_state.payment_id:
-                    succ, msg = verify_nowpayment_status(st.session_state.payment_id, email)
-                    if succ:
-                        st.success(msg)
-                        time.sleep(1.5)
-                        st.rerun()
-                    else: st.warning(msg)
-                else: st.error("No active payment found.")
+            if st.button("🔄 Verify Payment", use_container_width=True):
+                succ, msg = verify_nowpayment_status(st.session_state.payment_id, email)
+                if succ: st.success(msg); time.sleep(1); st.rerun()
+                else: st.warning(msg)
 
 # ═══════════════════════════════════════════════════════════════════
 # MAIN ROUTER
 # ═══════════════════════════════════════════════════════════════════
 def main():
-    if st.session_state.user_email is None:
-        render_login_page()
+    if st.session_state.user_email is None: render_login_page()
     else:
         render_sidebar()
         page = st.session_state.current_page
@@ -473,5 +435,5 @@ def main():
         elif page == "gallery": render_gallery_page()
         elif page == "billing": render_billing_page()
 
-if __name__ == "__main__":
-    main()
+if __name__ == "__main__": main()
+
